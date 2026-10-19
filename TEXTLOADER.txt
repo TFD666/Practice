@@ -1,0 +1,328 @@
+We already knew what a RAG system is: **Retrieval-Augmented Generation**. It is a technique where we retrieve the specific context/information required from a collection of documents and provide that information to the model so that it can generate a better and more relevant response.
+
+In the Campus X video, we went deeper into the concepts behind RAG and why we need it.
+
+We came across three major problems:
+
+1. **The model does not have access to our private data.**
+2. **The model may not be up to date with recent developments or information.**
+3. **The model can hallucinate and generate incorrect information.**
+
+To tackle these problems, we can think about different approaches.
+
+### 1. Training the model
+
+One approach would be to train the model further using our private data, recent information, and other information that we want the model to know.
+
+However, this is inefficient because training large models requires:
+
+- A lot of computational resources
+- A lot of time
+- Large amounts of data
+- Significant cost
+
+Also, whenever new information becomes available, continuously retraining the model would not be practical.
+
+### 2. Fine-tuning
+
+The next approach is **fine-tuning**.
+
+Instead of training the entire base model from scratch, we start with an existing pretrained model and train it further on specific data for a particular purpose.
+
+Fine-tuning can be useful for adapting a model to specific tasks, styles, or behaviors.
+
+However, it is still not an ideal solution for continuously providing the model with changing private or recent information.
+
+### 3. Providing context
+
+A simpler approach is to provide the model with the relevant information directly as part of its context/prompt.
+
+Instead of changing the model itself, we give the model the information it needs to perform the task.
+
+This leads us to **RAG**.
+
+# RAG
+
+RAG can be thought of as making an already capable model more useful by providing it with **only the relevant external information it needs** to answer a particular question or perform a particular task.
+
+Instead of giving the model an entire collection of documents, RAG retrieves the relevant information and provides it to the LLM.
+
+At a high level, RAG can be divided into four stages:
+
+1. **Indexing**
+2. **Retrieval**
+3. **Augmentation**
+4. **Generation**
+
+---
+
+# 1. Indexing
+
+Indexing is the process of preparing our external information so that it can later be searched and retrieved efficiently.
+
+First, we collect the documents that contain the information we want the model to use.
+
+These documents could come from:
+
+- PDFs
+- Websites
+- Text files
+- Other documents/data sources
+
+### Text Splitting / Chunking
+
+After retrieving the documents, we perform **text splitting or chunking**.
+
+Chunking means dividing large documents into smaller pieces called **chunks**.
+
+The chunks should ideally preserve meaningful/relevant pieces of information. We don't simply divide the document randomly because poor chunking can separate related information and negatively affect retrieval.
+
+For example:
+
+Large Document
+
+      ↓
+
+   Chunking
+
+      ↓
+
+ ┌─────────┐
+
+ │ Chunk 1 │
+
+ ├─────────┤
+
+ │ Chunk 2 │
+
+ ├─────────┤
+
+ │ Chunk 3 │
+
+ └─────────┘
+
+### Embeddings
+
+After creating the chunks, we pass them through an **embedding model**.
+
+The embedding model converts each chunk of text into a numerical **vector representation**.
+
+Text Chunk
+
+    ↓
+
+Embedding Model
+
+    ↓
+
+Vector
+
+These vectors represent the semantic information of the chunks and allow us to perform similarity-based searches.
+
+### Vector Database / Vector Store
+
+The generated vectors are then stored in a **vector database/vector store**, along with the associated chunk information/metadata.
+
+Conceptually:
+
+Chunk 1 → Vector 1
+
+Chunk 2 → Vector 2
+
+Chunk 3 → Vector 3
+
+This allows us to later search for vectors that are most similar to a user's query and retrieve their corresponding chunks.
+
+Therefore, the overall indexing process is:
+
+Documents
+
+    ↓
+
+Text Splitting / Chunking
+
+    ↓
+
+Embedding Model
+
+    ↓
+
+Vector Embeddings
+
+    ↓
+
+Vector Store
+
+The indexed documents and their vector representations together form our **external knowledge/information source** that can later be used during retrieval.
+
+---
+
+# 2. Retrieval
+
+Now suppose the user asks a question.
+
+We already have our external information stored in the vector store from the indexing stage.
+
+The goal of retrieval is to find the **relevant information required to answer the user's query**.
+
+First, the user's query is converted into a vector using the **same embedding model/compatible embedding space** that was used during indexing.
+
+User Query
+
+    ↓
+
+Embedding Model
+
+    ↓
+
+Query Vector
+
+The query vector is then given to the **retriever**.
+
+The retriever searches the vector store and finds the vectors that are most similar/relevant to the query.
+
+It then retrieves the corresponding text chunks.
+
+User Query
+
+    ↓
+
+Query Embedding
+
+    ↓
+
+Retriever
+
+    ↓
+
+Vector Store
+
+    ↓
+
+Relevant Chunks
+
+So, the retrieval process is essentially finding the pieces of information that are most relevant to the user's question.
+
+---
+
+# 3. Augmentation
+
+Now we have two important things:
+
+1. **The user's original query**
+2. **The relevant documents/chunks retrieved from the vector store**
+
+In the augmentation stage, these are combined to create the context/prompt that will be provided to the LLM.
+
+Conceptually:
+
+User Query
+
+     +
+
+Retrieved Relevant Context
+
+     ↓
+
+Augmented Prompt
+
+The augmented prompt is then sent to the LLM.
+
+The important idea is that **we are giving the LLM external knowledge that it can use while answering the user's question.**
+
+---
+
+# 4. Generation
+
+The final stage is **Generation**.
+
+The LLM receives:
+
+- The user's query
+- The relevant retrieved context
+
+It then processes this information and generates the final response.
+
+User Query
+
+      +
+
+Retrieved Context
+
+      ↓
+
+Augmented Prompt
+
+      ↓
+
+     LLM
+
+      ↓
+
+Generated Answer
+
+Therefore, the complete RAG flow is:
+
+                 INDEXING
+
+Documents → Chunking → Embeddings → Vector Store
+
+                                      │
+
+                                      │
+
+                                      ▼
+
+                                RETRIEVAL
+
+User Query → Query Embedding → Retriever
+
+                                      │
+
+                                      ▼
+
+                              Relevant Chunks
+
+                                      │
+
+                                      ▼
+
+                                AUGMENTATION
+
+                           Query + Retrieved Context
+
+                                      │
+
+                                      ▼
+
+                                  GENERATION
+
+                                      │
+
+                                      ▼
+
+                                     LLM
+
+                                      │
+
+                                      ▼
+
+                                   Answer
+
+
+Data Loaders 
+
+Document loaders can be divided into four types of loaders. The components are:
+
+- Text loader
+- PDF loader
+- Web-based loaders
+- CSV loader
+
+These loaders are the main loaders. There are many other types of loaders also. They can be categorized as custom loaders but mostly these loaders are used in most of the concepts in RAG.
+ Document loaders are components in which the data that is taken is converted into a standardized format and the format is a document object which will contain the the page content and the metadata. In the page content the actual data will be there and in the metadata it will be the source that has been created, when the document was created, and all other things. This will be the standardized format into which all the data will be converted.
+
+For example if I have a text file, a PDF file, or a CSV file, then all these files' data will also be converted into a standard format, which will be a document object.  
+
+Text loader
+ the basic type of loader is a text loader. It just takes a text file and converts it into a data object, which can be used further. It is mostly used for log files, YouTube transcripts, and all this. 
